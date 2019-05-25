@@ -23,22 +23,22 @@ package Effects is
      (Self : in out Attenuator; I : Natural; Val : Float);
 
    overriding function Get_Value
-     (Self : in out Attenuator; I : Natural) return Float
+     (Self : in out Attenuator; Dummy : Natural) return Float
    is (Self.Level);
 
    overriding function Get_Name
-     (Self : in out Attenuator; I : Natural) return String
+     (Self : in out Attenuator; Dummy : Natural) return String
    is
      ("Attenuator");
 
    overriding function Get_Min_Value
-     (Self : in out Attenuator; I : Natural) return Float is (0.0);
+     (Self : in out Attenuator; Dummy : Natural) return Float is (0.0);
 
    overriding function Get_Max_Value
-     (Self : in out Attenuator; I : Natural) return Float is (5_000.0);
+     (Self : in out Attenuator; Dummy : Natural) return Float is (5_000.0);
 
    overriding procedure Next_Samples
-     (Self : in out Attenuator);
+     (Self : in out Attenuator; Buffer : in out Generator_Buffer);
 
    overriding procedure Reset (Self : in out Attenuator);
 
@@ -60,7 +60,7 @@ package Effects is
                            Level_Provider => G, others => <>));
 
    overriding procedure Next_Samples
-     (Self : in out Dyn_Attenuator);
+     (Self : in out Dyn_Attenuator; Buffer : in out Generator_Buffer);
 
    overriding procedure Reset (Self : in out Dyn_Attenuator);
 
@@ -77,7 +77,7 @@ package Effects is
    end record;
 
    overriding procedure Next_Samples
-     (Self : in out Transposer);
+     (Self : in out Transposer; Buffer : in out Generator_Buffer);
 
    overriding procedure Reset (Self : in out Transposer);
 
@@ -114,7 +114,7 @@ package Effects is
       Clip_Level : Float; Coeff : Float := 10.0) return access Disto;
 
    overriding procedure Next_Samples
-     (Self : in out Disto);
+     (Self : in out Disto; Buffer : in out Generator_Buffer);
 
    overriding procedure Reset (Self : in out Disto);
 
@@ -135,6 +135,8 @@ package Effects is
       D1, D2, D3, D4     : Float := 0.0;
    end record;
 
+   --  TODO: Why Res/Q should probably have a provider.
+
 --     overriding function Has_Params_Scope
 --       (Self : in out Low_Pass_Filter) return Boolean is (True);
 
@@ -147,7 +149,7 @@ package Effects is
    is (True);
 
    overriding procedure Next_Samples
-     (Self : in out Low_Pass_Filter);
+     (Self : in out Low_Pass_Filter; Buffer : in out Generator_Buffer);
 
    overriding procedure Reset (Self : in out Low_Pass_Filter);
 
@@ -162,19 +164,19 @@ package Effects is
      (Self : in out Low_Pass_Filter; I : Natural; Val : Float);
 
    overriding function Get_Value
-     (Self : in out Low_Pass_Filter; I : Natural) return Float
+     (Self : in out Low_Pass_Filter; Dummy : Natural) return Float
    is (Self.Res);
 
    overriding function Get_Name
-     (Self : in out Low_Pass_Filter; I : Natural) return String
+     (Self : in out Low_Pass_Filter; Dummy : Natural) return String
    is
      ("Q");
 
    overriding function Get_Min_Value
-     (Self : in out Low_Pass_Filter; I : Natural) return Float is (0.0);
+     (Self : in out Low_Pass_Filter; Dummy : Natural) return Float is (0.0);
 
    overriding function Get_Max_Value
-     (Self : in out Low_Pass_Filter; I : Natural) return Float is (1.0);
+     (Self : in out Low_Pass_Filter; Dummy : Natural) return Float is (1.0);
 
    -----------
    -- Mixer --
@@ -192,6 +194,7 @@ package Effects is
       Length     : Natural := 0;
       Env        : access ADSR;
       Saturate   : Boolean := False;
+      Work_Buffer : Generator_Buffer;
    end record;
 
    type Generators_Arg_Array is array (Natural range <>) of Mixer_Generator;
@@ -209,7 +212,8 @@ package Effects is
    procedure Add_Generator
      (Self : in out Mixer; G : access Generator'Class; Level : Float);
 
-   overriding procedure Next_Samples (Self : in out Mixer);
+   overriding procedure Next_Samples
+     (Self : in out Mixer; Buffer : in out Generator_Buffer);
 
    overriding procedure Reset (Self : in out Mixer);
 
@@ -218,7 +222,7 @@ package Effects is
 
    type Delay_Line is new Generator with record
       Source           : access Generator'Class;
-      Delay_In_Samples : B_Range_T;
+      Delay_In_Samples : Buffer_Range_Type;
       Decay            : Sample;
       Last_Buffer      : Generator_Buffer := (others => 0.0);
    end record;
@@ -227,7 +231,8 @@ package Effects is
                                Dlay : Millisecond;
                                Decay : Sample) return access Delay_Line;
 
-   overriding procedure Next_Samples (Self : in out Delay_Line);
+   overriding procedure Next_Samples
+     (Self : in out Delay_Line; Buffer : in out Generator_Buffer);
 
    overriding procedure Reset (Self : in out Delay_Line);
 

@@ -31,7 +31,8 @@ package body Soundio_Output is
       Out_Stream.User_Data := Access_To_Address
         (new Soundio_User_Data'
            (Mode => Buffer,
-            G => G,
+            G    => G,
+            G_Buffer => <>,
             Ring_Buf => Ring_Buf,
             Current_Sample => <>, S => Stop));
    end Set_Ring_Buffer;
@@ -46,7 +47,8 @@ package body Soundio_Output is
    begin
       Out_Stream.User_Data := Access_To_Address
         (new Soundio_User_Data'
-           (Mode => Callback, G => G, Current_Sample => <>, S => Stop));
+           (Mode           => Callback, G => G, G_Buffer => <>,
+            Current_Sample => <>, S => Stop));
    end Set_Generator;
 
    -------------------
@@ -83,16 +85,16 @@ package body Soundio_Output is
      (G : User_Data_Access) return Float
    is
    begin
-      if G.Current_Sample = B_Range_T'Last then
+      if G.Current_Sample = Buffer_Range_Type'Last then
          Next_Steps;
-         G.G.Next_Samples;
+         G.G.Next_Samples (G.G_Buffer);
          Sample_Nb := Sample_Nb + Generator_Buffer_Length;
          G.Current_Sample := 0;
       else
          G.Current_Sample := G.Current_Sample + 1;
       end if;
 
-      return Float (G.G.Buffer (G.Current_Sample));
+      return Float (G.G_Buffer (G.Current_Sample));
    end Get_Next_Sample;
 
    Dummy_Err            : SoundIo_Error;
@@ -205,7 +207,7 @@ package body Soundio_Output is
 
    procedure Write_Samples
      (Out_Stream : access SoundIo_Out_Stream;
-      Max_Nb_Samples : Natural := Natural (B_Range_T'Last))
+      Max_Nb_Samples : Natural := Natural (Buffer_Range_Type'Last))
    is
       U : constant User_Data_Access := Get_User_Data (Out_Stream);
       Available_Frames : Natural := FRB.Available_Write_Frames (U.Ring_Buf);

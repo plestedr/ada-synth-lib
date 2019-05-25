@@ -15,7 +15,8 @@ package Soundio_Output is
    type Soundio_User_Data (Mode : Soundio_Mode) is record
       S              : State;
       G              : access Generator'Class;
-      Current_Sample : B_Range_T := B_Range_T'Last;
+      G_Buffer       : Generator_Buffer;
+      Current_Sample : Buffer_Range_Type := Buffer_Range_Type'Last;
 
       case Mode is
          when Callback =>
@@ -52,7 +53,7 @@ package Soundio_Output is
 
    procedure Write_Samples
      (Out_Stream : access SoundIo_Out_Stream;
-      Max_Nb_Samples : Natural := Natural (B_Range_T'Last));
+      Max_Nb_Samples : Natural := Natural (Buffer_Range_Type'Last));
 
    function Drift_Level return int;
 

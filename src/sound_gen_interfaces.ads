@@ -4,16 +4,29 @@ with Array_Utils;
 package Sound_Gen_Interfaces is
 
    Sample_Nb : Sample_Period := 0;
+   --  Global state for ASL: This is the state of the sound simulation, eg. at
+   --  which sample we are right now. TODO: Put this in a context, rather than
+   --  in a global.
+
+   -------------
+   -- Buffers --
+   -------------
+
+   Generator_Buffer_Length : constant := 512;
+
+   type Buffer_Range_Type is range 0 .. Generator_Buffer_Length - 1;
+   type Generator_Buffer is array (Buffer_Range_Type) of Sample;
+   --  Type for a generator buffer, used as work areas for generators.
 
    ---------------
    -- Generator --
    ---------------
 
-   Generator_Buffer_Length : constant := 512;
-   type B_Range_T is range 0 .. Generator_Buffer_Length - 1;
-   type Generator_Buffer is array (B_Range_T) of Sample;
-
    type Generator;
+   --  Base type for a generator. A generator is the basic building block to
+   --  create synth graphs in Ada synth lib. By creating a tree of generators,
+   --  the user can create complex instruments.
+
    type Generator_Access is access all Generator'Class;
 
    package Generator_Arrays
@@ -21,22 +34,27 @@ package Sound_Gen_Interfaces is
    subtype Generator_Array is Generator_Arrays.Array_Type;
    subtype Generator_Vector is Generator_Arrays.Vectors.Vector;
    Empty_Generator_Array : Generator_Array := Generator_Arrays.Empty_Array;
+   --  Utility types to handle collection of generators
 
-   type Params_Aggregator_Type is record
+   ----------------------
+   --  Parameter scope --
+   ---------------------------
+
+   type Params_Scope_Type is record
       Generators : Generator_Arrays.Vector_Type;
    end record;
-   type Params_Aggregator is access all Params_Aggregator_Type;
+   type Params_Scope is access all Params_Scope_Type;
 
-   procedure Enter (F : Params_Aggregator);
-   procedure Leave (F : Params_Aggregator);
+   procedure Enter (F : Params_Scope);
+   procedure Leave (F : Params_Scope);
    procedure Add_To_Current (G : Generator_Access);
 
    type Generator is abstract tagged record
-      Buffer       : Generator_Buffer;
-      Params_Scope : Params_Aggregator;
+      Parameters : Params_Scope;
    end record;
 
-   procedure Next_Samples (Self : in out Generator) is abstract;
+   procedure Next_Samples
+     (Self : in out Generator; Buffer : in out Generator_Buffer) is abstract;
    pragma Inline (Next_Samples);
 
    procedure Base_Reset (Self : in out Generator);
@@ -63,14 +81,15 @@ package Sound_Gen_Interfaces is
    function Nb_Values (Self : in out Generator) return Natural is (0);
    procedure Set_Value
      (Self : in out Generator; I : Natural; Val : Float) is null;
+
    function Get_Value
-     (Self : in out Generator; I : Natural) return Float is (0.0);
+     (Self : in out Generator; Dummy : Natural) return Float is (0.0);
    function Get_Name
-     (Self : in out Generator; I : Natural) return String is ("");
+     (Self : in out Generator; Dummy : Natural) return String is ("");
    function Get_Min_Value
-     (Self : in out Generator; I : Natural) return Float is (0.0);
+     (Self : in out Generator; Dummy : Natural) return Float is (0.0);
    function Get_Max_Value
-     (Self : in out Generator; I : Natural) return Float is (0.0);
+     (Self : in out Generator; Dummy : Natural) return Float is (0.0);
 
    type Scaled_Value_T is new Float range 0.0 .. 1.0;
 
@@ -80,7 +99,8 @@ package Sound_Gen_Interfaces is
    type Param_Scale_T is (Linear, Exp);
 
    function Get_Scale
-     (Self : in out Generator; I : Natural) return Param_Scale_T is (Linear);
+     (Self : in out Generator; Dummy : Natural) return Param_Scale_T
+   is (Linear);
 
    ----------------------
    -- Signal_Processor --
@@ -107,7 +127,7 @@ package Sound_Gen_Interfaces is
    function Name
      (Self : in out I_Simulation_Listener) return String is abstract;
 
-   type Note_Signal_Buffer is array (B_Range_T) of Note_Signal;
+   type Note_Signal_Buffer is array (Buffer_Range_Type) of Note_Signal;
 
    type Note_Generator is abstract tagged record
       Buffer            : Note_Signal_Buffer;
